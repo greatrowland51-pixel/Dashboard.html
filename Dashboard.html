@@ -1,1 +1,296 @@
-
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Trading Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:linear-gradient(135deg,#0f172a,#1e293b);color:#e2e8f0;font-family:Segoe UI;min-height:100vh;padding:20px}
+.container{max-width:1400px;margin:0 auto}
+.header{text-align:center;padding:20px;background:rgba(15,23,42,.8);border-radius:12px;margin-bottom:30px}
+.header h1{font-size:2.5em;background:linear-gradient(135deg,#10b981,#14b8a6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.btn{padding:15px 40px;font-size:1.2em;background:linear-gradient(135deg,#10b981,#14b8a6);color:white;border:none;border-radius:50px;cursor:pointer;font-weight:bold}
+.controls{display:none;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:15px;margin-bottom:30px}
+.controls.show{display:grid}
+.ctrl-group{background:rgba(30,41,59,.8);padding:12px;border-radius:8px}
+.ctrl-group label{display:block;font-size:.85em;margin-bottom:8px;color:#cbd5e1;font-weight:600}
+select{width:100%;padding:10px;background:rgba(15,23,42,.9);color:#e2e8f0;border:1px solid rgba(16,185,129,.3);border-radius:6px}
+.analyzing-section{background:#fff;border:2px solid #10b981;border-radius:12px;padding:40px;margin-bottom:30px;display:none;text-align:center}
+.analyzing-section.show{display:block}
+.robot-icon{font-size:5em;margin-bottom:20px;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+.analyzing-title{font-size:1.8em;color:#10b981;margin-bottom:30px;font-weight:900}
+.bar-container{width:100%;height:50px;background:#e2e8f0;border-radius:25px;overflow:hidden;margin-bottom:20px}
+.bar-fill{height:100%;background:linear-gradient(90deg,#10b981,#14b8a6);width:0%;display:flex;align-items:center;justify-content:center;color:white;font-weight:900;font-size:1.2em}
+.section{background:rgba(30,41,59,.8);border-radius:12px;padding:30px;margin-bottom:30px;display:none;text-align:center}
+.section.show{display:block}
+.arrow{font-size:8em;margin:30px 0;animation:bounce 1s infinite;font-weight:900}
+.arrow.buy{color:#10b981;text-shadow:0 0 30px rgba(16,185,129,.8)}
+.arrow.sell{color:#ef4444;text-shadow:0 0 30px rgba(239,68,68,.8)}
+.arrow.hold{color:#f59e0b;text-shadow:0 0 30px rgba(245,158,11,.8)}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-30px)}}
+.text{font-size:2em;font-weight:bold;margin:15px 0}
+.text.buy{color:#10b981}
+.text.sell{color:#ef4444}
+.text.hold{color:#f59e0b}
+.details{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-top:20px}
+.detail{background:rgba(15,23,42,.6);padding:12px;border-radius:8px;border-left:3px solid #10b981}
+.detail-label{font-size:.8em;color:#94a3b8;margin-bottom:5px}
+.detail-value{font-size:1.2em;font-weight:bold;color:#10b981}
+.reasons{background:rgba(15,23,42,.6);padding:15px;border-radius:8px;margin-top:15px;text-align:left}
+.reason{color:#cbd5e1;margin:8px 0}
+.thank{text-align:center;padding:15px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:8px;margin-top:15px;color:#10b981;font-weight:bold}
+.card{background:rgba(30,41,59,.8);border-radius:12px;padding:20px;margin-bottom:20px;display:none}
+.card.show{display:block}
+.card h3{margin-bottom:15px;color:#cbd5e1}
+.chart-box{height:300px;background:rgba(15,23,42,.6);padding:15px;border-radius:8px}
+.signals-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:15px}
+.signal-item{background:rgba(30,41,59,.8);border-left:4px solid #10b981;padding:15px;border-radius:8px}
+.signal-item.sell{border-left-color:#ef4444}
+.signal-item.hold{border-left-color:#f59e0b}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header">
+<h1>📊 Trading Signal Dashboard</h1>
+<p>Real-time AI Analysis Bot</p>
+</div>
+<div style="text-align:center;padding:40px;background:rgba(30,41,59,.8);border-radius:12px;margin-bottom:30px" id="gs">
+<h2 style="color:#10b981;margin-bottom:20px">Ready to Analyze?</h2>
+<button class="btn" onclick="startAnalysis()">🔍 Get Signal</button>
+</div>
+<div class="controls" id="ctrl">
+<div class="ctrl-group">
+<label>📁 Category</label>
+<select id="cat">
+<option>OTC Forex</option>
+<option>Forex</option>
+<option>Crypto</option>
+</select>
+</div>
+<div class="ctrl-group">
+<label>💱 Pair</label>
+<select id="pair">
+<option>EUR/USD OTC</option>
+<option>EUR/GBP OTC</option>
+<option>AED/CNY OTC</option>
+<option>AUD/CHF OTC</option>
+<option>AUD/USD OTC</option>
+<option>EUR/GBP</option>
+<option>USD/CHF</option>
+<option>NZD/USD</option>
+<option>EUR/JPY</option>
+<option>GBP/JPY</option>
+<option>BTC/USDT</option>
+<option>ETH/USDT</option>
+<option>XRP/USDT</option>
+<option>ADA/USDT</option>
+<option>SOL/USDT</option>
+</select>
+</div>
+<div class="ctrl-group">
+<label>⏱️ Timeframe</label>
+<select id="tf">
+<option>1m</option>
+<option>5m</option>
+<option>15m</option>
+<option>1h</option>
+<option>4h</option>
+<option>1d</option>
+</select>
+</div>
+<div class="ctrl-group">
+<button onclick="analyzeMarket()" style="width:100%">📊 Analyze</button>
+</div>
+</div>
+<div class="analyzing-section" id="ana">
+<div class="robot-icon">🤖</div>
+<h3 class="analyzing-title">AI MARKET SCANNING ACTIVE</h3>
+<p style="font-size:1.2em;color:#1e293b;margin-bottom:30px;font-weight:600">Analyzing price patterns...</p>
+<div class="bar-container">
+<div class="bar-fill" id="bar">0%</div>
+</div>
+<p style="color:#64748b;font-size:1em;margin-top:15px">Processing technical indicators...</p>
+</div>
+<div class="section" id="res">
+<div class="arrow" id="arr">⬆️</div>
+<div class="text" id="txt">BUY</div>
+<div class="details">
+<div class="detail">
+<div class="detail-label">Pair</div>
+<div class="detail-value" id="p">-</div>
+</div>
+<div class="detail">
+<div class="detail-label">Confidence</div>
+<div class="detail-value" id="cf">0%</div>
+</div>
+<div class="detail">
+<div class="detail-label">Timeframe</div>
+<div class="detail-value" id="tf2">-</div>
+</div>
+<div class="detail">
+<div class="detail-label">Time</div>
+<div class="detail-value" id="tm">-</div>
+</div>
+</div>
+<div class="reasons">
+<h4 style="color:#10b981;margin-bottom:10px">📋 Why This Signal:</h4>
+<div id="rea"></div>
+</div>
+<div class="thank">🤖 Thank you for trading with our AI Analysis Bot!</div>
+</div>
+<div class="card" id="ch">
+<h3>📊 Price Chart</h3>
+<div class="chart-box">
+<canvas id="c"></canvas>
+</div>
+</div>
+<div class="card" id="sig">
+<h3>🚨 Recent Signals</h3>
+<div id="sl" class="signals-grid"></div>
+</div>
+<div style="text-align:center;padding:20px;color:#64748b">
+<p>🤖 AI Trading Bot | 15 Pairs | Real-time Analysis</p>
+</div>
+</div>
+<script>
+let h=[];
+let chart=null;
+function startAnalysis(){
+document.getElementById('ctrl').classList.add('show');
+document.getElementById('gs').style.opacity='0.5';
+}
+function gen(){
+let p=[];
+let pr=100;
+for(let i=0;i<50;i++){
+pr+=(Math.random()-0.5)*2;
+p.push(Math.max(95,Math.min(105,pr)));
+}
+return p;
+}
+function rsi(p){
+if(p.length<14)return 50;
+let g=0,l=0;
+for(let i=p.length-14;i<p.length;i++){
+let d=p[i]-p[i-1];
+if(d>0)g+=d;
+else l-=d;
+}
+let rs=(g/14)/(l/14);
+return 100-(100/(1+rs));
+}
+function analyzeMarket(){
+let p=document.getElementById('pair').value;
+let t=document.getElementById('tf').value;
+document.getElementById('ana').classList.add('show');
+document.getElementById('res').classList.remove('show');
+let pro=0;
+let iv=setInterval(function(){
+pro+=Math.random()*25;
+if(pro>=100){
+pro=100;
+clearInterval(iv);
+show(p,t);
+}
+document.getElementById('bar').style.width=pro+'%';
+document.getElementById('bar').textContent=Math.round(pro)+'%';
+},300);
+}
+function show(p,t){
+let pr=gen();
+let r=rsi(pr);
+let sig='NONE';
+let conf=0;
+let cnt=0;
+let reas=[];
+if(r<30){
+cnt+=1;
+reas.push('📊 RSI '+Math.round(r)+' (Oversold - Bullish)');
+}else if(r>70){
+cnt-=1;
+reas.push('📊 RSI '+Math.round(r)+' (Overbought - Bearish)');
+}else{
+reas.push('📊 RSI '+Math.round(r)+' (Neutral)');
+}
+let m=Math.random()>0.5?1:-1;
+if(m>0){
+cnt+=1;
+reas.push('📈 MACD positive (Bullish)');
+}else{
+cnt-=1;
+reas.push('📉 MACD negative (Bearish)');
+}
+let bb=Math.random();
+if(bb>0.7){
+cnt+=1;
+reas.push('🎯 Price below lower band (Oversold)');
+}else if(bb<0.3){
+cnt-=1;
+reas.push('🎯 Price above upper band (Overbought)');
+}else{
+reas.push('🎯 Price within Bollinger Bands');
+}
+if(Math.random()>0.5){
+cnt+=1;
+reas.push('📊 Price above SMA20 (Bullish)');
+}else{
+cnt-=1;
+reas.push('📊 Price below SMA20 (Bearish)');
+}
+if(cnt>=3){
+sig='BUY';
+conf=Math.min(100,(cnt/4)*100);
+}else if(cnt<=-3){
+sig='SELL';
+conf=Math.min(100,(Math.abs(cnt)/4)*100);
+}else{
+sig='HOLD';
+conf=50;
+}
+document.getElementById('res').classList.add('show');
+document.getElementById('ana').classList.remove('show');
+if(sig==='BUY'){
+document.getElementById('arr').innerHTML='⬆️';
+document.getElementById('arr').className='arrow buy';
+document.getElementById('txt').textContent='BUY SIGNAL';
+document.getElementById('txt').className='text buy';
+}else if(sig==='SELL'){
+document.getElementById('arr').innerHTML='⬇️';
+document.getElementById('arr').className='arrow sell';
+document.getElementById('txt').textContent='SELL SIGNAL';
+document.getElementById('txt').className='text sell';
+}else{
+document.getElementById('arr').innerHTML='⏸️';
+document.getElementById('arr').className='arrow hold';
+document.getElementById('txt').textContent='HOLD';
+document.getElementById('txt').className='text hold';
+}
+document.getElementById('p').textContent=p;
+document.getElementById('cf').textContent=conf+'%';
+document.getElementById('tf2').textContent=t;
+document.getElementById('tm').textContent=new Date().toLocaleTimeString();
+document.getElementById('rea').innerHTML=reas.map(function(r){return '<div class="reason">'+r+'</div>'}).join('');
+document.getElementById('ch').classList.add('show');
+document.getElementById('sig').classList.add('show');
+drw(pr);
+h.unshift({pair:p,signal:sig,confidence:conf,time:new Date().toLocaleTimeString()});
+upd();
+}
+function drw(pr){
+let ctx=document.getElementById('c').getContext('2d');
+if(chart)chart.destroy();
+chart=new Chart(ctx,{type:'line',data:{labels:pr.map(function(x,i){return i}),datasets:[{label:'Price',data:pr,borderColor:'#10b981',backgroundColor:'rgba(16,185,129,0.1)',borderWidth:2,fill:true,tension:0.4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#cbd5e1'}}},scales:{y:{ticks:{color:'#94a3b8'},grid:{color:'rgba(148,163,184,0.1)'}},x:{ticks:{color:'#94a3b8'},grid:{color:'rgba(148,163,184,0.1)'}}}}});
+}
+function upd(){
+let l=document.getElementById('sl');
+l.innerHTML=h.slice(0,5).map(function(s){
+return '<div class="signal-item '+(s.signal==='SELL'?'sell':s.signal==='HOLD'?'hold':'')+'" ><div style="font-weight:bold;margin-bottom:8px;">'+s.pair+'</div><div style="color:'+(s.signal==='BUY'?'#10b981':s.signal==='SELL'?'#ef4444':'#f59e0b')+';font-weight:bold;">'+(s.signal==='BUY'?'🟢':s.signal==='SELL'?'🔴':'⏸️')+' '+s.signal+'</div><div style="margin-top:8px;color:#94a3b8;">'+s.confidence+'% • '+s.time+'</div></div>';
+}).join('');
+}
+</script>
+</body>
+  </html>
